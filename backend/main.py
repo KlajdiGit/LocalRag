@@ -2,6 +2,7 @@ from fastapi import FastAPI, UploadFile, File
 import os
 
 from rag.PDF_loader import extractTextFromPdf
+from rag.textSplitter import splitText
 
 app = FastAPI()
 
@@ -19,6 +20,7 @@ async def upload_pdf(file: UploadFile = File(...)):
          f.write(await file.read())
 
     text = extractTextFromPdf(filePath)
+    chunks = splitText(text)
 
     return{
         "filename": file.filename,
