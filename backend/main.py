@@ -11,6 +11,17 @@ app = FastAPI()
 UPLOAD_DIR = "data/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok = True)
 
+
+@app.get("/")
+def root():
+    return {
+        "message": "Welcome to LocalRAG API",
+        "docs": "/docs",
+        "health": "/health",
+        "upload_pdf": "/upload",
+        "test_rag": "/test_rag"
+    }
+
 @app.get("/health")
 def health_check():
     return {"status" : "ok"}
