@@ -15,3 +15,10 @@ def createFaissIndex(embeddings : list[list[float]]):
     index.add(vectors)
 
     return index
+
+def searchFaiss(index, queryEmbedding, k = 3):
+    # The function tried to find the top 3 chunk closest to what query says
+    # D -> distances between the query and each retrieved vector
+    # I -> Indices of the matching vectors
+    D,I = index.search(queryEmbedding, k)
+    return I[0]
