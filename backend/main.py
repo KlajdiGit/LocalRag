@@ -1,5 +1,8 @@
 from fastapi import FastAPI, UploadFile, File
 import os
+import requests
+from pydantic import BaseModel
+
 
 from rag.PDF_loader import extractTextFromPdf
 from rag.textSplitter import splitText
@@ -80,4 +83,59 @@ async def query_rag(question: str):
         "question": question,
         "top_chunks": retrieved
     }
+
+def call_llm(prompt: str) -> str:
+    response = request.post(
+        "http://localhost:1134/api/generate",
+        json = {
+            "model": "phi3", # or llama3.1
+            "prompt": prompt,
+            "stream": False
+        }
+    )
+    return response.json()["response"]
+
+def build_rag_prompt(question: str, chunks: list[str]) -> str:
+    context = "\n\n".join(chunks)
+    return f"""
+    Use ONLY the context below to answer the question.
+    If the answer is not in the context, say "I don't know."
+
+    Context:
+    {context}
+
+    Question: {question}
+    Answer:
+    """
+
+def retrieve_top_chunks(question: str, k: int = 3):
+    global faissIndex, storedChunks
+    # 1. Embed the question
+    query_embedding = model.encode([question]).astype("float32")
+
+    # 2. Search FAISS (your existing function)
+    indices = searchFaiss(faissIndex, query_embedding, k)
+
+    # 3. Convert indices → actual chunk text
+    return [storedChunks[i] for i in indices]
+
+
+class QuestionRequest(BaseModel):
+    question: str
+
+@app.post("/answer")
+def answer_question(payload: QuestionRequest):
+    question = payload.question
+
+    top_chunks = retrieve_top_chunks(question, k=3)
+    prompt = build_rag_prompt(question, top_chunks)
+    answer = call_llm(prompt)
+
+    return {
+        "question": question,
+        "answer": answer,
+        "chunks_used": top_chunks
+    }
+
+
     
