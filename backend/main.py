@@ -85,8 +85,8 @@ async def query_rag(question: str):
     }
 
 def call_llm(prompt: str) -> str:
-    response = request.post(
-        "http://localhost:1134/api/generate",
+    response = requests.post(
+        "http://localhost:11434/api/generate",
         json = {
             "model": "phi3", # or llama3.1
             "prompt": prompt,
