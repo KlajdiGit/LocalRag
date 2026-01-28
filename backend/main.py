@@ -2,13 +2,17 @@ from fastapi import FastAPI, UploadFile, File
 import os
 import requests
 from pydantic import BaseModel
-
+import json
+import faiss
 
 from rag.PDF_loader import extractTextFromPdf
 from rag.textSplitter import splitText
 from rag.vectorStore import createFaissIndex, searchFaiss
 from rag.embeddings import embed_chunks, model # reuse the same model
 
+
+INDEX_PATH = "data/index/faiss.index"
+CHUNKS_PATH = "data/index/chunks.json"
 
 app = FastAPI()
 
@@ -17,6 +21,28 @@ os.makedirs(UPLOAD_DIR, exist_ok = True)
 
 faissIndex = None
 storedChunks = None
+
+def saveIndexAndChunks(faissInd, chunks):
+    # Save FAISS index
+    faiss.write_index(faissInd, INDEX_PATH)
+    
+    # Save chunks
+    with open(CHUNKS_PATH, "w", encoding = "utf-8") as f:
+        json.dump(chunks, f, ensure_ascii = False, indent = 2)
+
+def loadIndexAndChunks():
+    if not os.path.exists(INDEX_PATH)   or not os.path.exists(CHUNKS_PATH):
+        return None, None
+
+    faissInd = faiss.read_index(INDEX_PATH)
+
+    with open(CHUNKS_PATH, "r", encoding = "utf-8") as f:
+        chunks = json.load(f)
+
+    return faissInd, chunks   
+
+
+faissIndex, storedChunks = loadIndexAndChunks()    
 
 @app.get("/")
 def root():
@@ -54,11 +80,25 @@ async def test_rag(file: UploadFile = File(...)):
         f.write(await file.read())
 
     text = extractTextFromPdf(filePath)
-    chunks = splitText(text)
+    #chunks = splitText(text)
+    chunks = [
+        {"doc": file.filename, "text": chunk}
+        for chunk in splitText(text)
+    ]
     embeddings = embed_chunks(chunks)
 
-    storedChunks = chunks
-    faissIndex = createFaissIndex(embeddings)
+    # storedChunks = chunks
+    # faissIndex = createFaissIndex(embeddings)
+    if storedChunks is None:
+        storedChunks = chunks
+        faissIndex = createFaissIndex(embeddings)
+    else:
+        storedChunks.extend(chunks)
+        faissIndex.add(embeddings)    
+
+
+    # Save the read data to disk
+    saveIndexAndChunks(faissIndex, storedChunks)
     
     return{
         "chunks": len(chunks),
@@ -136,6 +176,20 @@ def answer_question(payload: QuestionRequest):
         "answer": answer,
         "chunks_used": top_chunks
     }
+
+@app.post("/reset_rag")
+def reset_rag():
+    global faissIndex, storedChunks
+
+    faissIndex = None
+    storedChunks = None
+
+    if os.path.exists(INDEX_PATH):
+       os.remove(INDEX_PATH)
+    if os.path.exists(CHUNKS_PATH):
+        os.remove(CHUNKS_PATH)  
+
+    return {"status": "reset complete"}              
 
 
     
