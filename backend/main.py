@@ -168,13 +168,19 @@ def answer_question(payload: QuestionRequest):
     question = payload.question
 
     top_chunks = retrieve_top_chunks(question, k=3)
-    prompt = build_rag_prompt(question, top_chunks)
+    prompt = build_rag_prompt(question, [c["text"] for c in top_chunks])
     answer = call_llm(prompt)
 
     return {
         "question": question,
         "answer": answer,
-        "chunks_used": top_chunks
+        "sources": [
+            {
+                "doc": chunk["doc"],
+                "text": chunk["text"]
+            }
+            for chunk in top_chunks
+        ]
     }
 
 @app.post("/reset_rag")
