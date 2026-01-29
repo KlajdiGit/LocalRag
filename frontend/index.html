@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Local RAG App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>Local RAG chat</h2>
+    <div id="chat-window"></div>
+
+    <div class="input-row">
+        <input id="user-input" type="text" placeholder="Ask a question...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+
+     <div class="upload-row">
+        <input type="file" id="pdf-upload" accept="application/pdf">
+        <button onclick="uploadPDF()">Upload PDF</button>
+    </div>
+
+    <button class="reset-btn" onclick="resetRAG()">Reset Knowledge Base</button>
+
+</div>
+<script src="script.js"></script>
+</body>
+</html>
