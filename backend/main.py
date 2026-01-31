@@ -10,11 +10,22 @@ from rag.textSplitter import splitText
 from rag.vectorStore import createFaissIndex, searchFaiss
 from rag.embeddings import embed_chunks, model # reuse the same model
 
+from fastapi.middleware.cors import CORSMiddleware
+
+
+app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = ["*"],
+    allow_credentials = True,
+    allow_methods = ["*"],
+    allow_headers = ["*"],
+)
 
 INDEX_PATH = "data/index/faiss.index"
 CHUNKS_PATH = "data/index/chunks.json"
-
-app = FastAPI()
 
 UPLOAD_DIR = "data/uploads"
 os.makedirs(UPLOAD_DIR, exist_ok = True)
